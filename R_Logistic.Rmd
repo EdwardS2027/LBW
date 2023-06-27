@@ -1,0 +1,77 @@
+---
+title: "R_Logistic"
+author: "Edward Shao"
+date: "6/26/2023"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(readxl)
+library(ggplot2)
+library(ResourceSelection)
+```
+
+
+
+```{r}
+#Data loading
+df = read_excel("LBW.xlsx")
+df$LOW = df$"ï»¿LOW"
+```
+
+
+```{r}
+#Fit a linear regression:
+linear_model <- lm(LOW ~ AGE + WT + RACE + SMOKE + HYP + UI + FTV + PTL,data = df)
+
+summary(linear_model)
+```
+
+```{r}
+#Graphically look at the relationship between age and low birth weight (continous)
+linear_plot <- ggplot(data = df) +
+  geom_point(aes(x = AGE, y = as.numeric(LOW))) +
+  theme_bw() +
+  ylab("Frequently Low Birth Weight") 
+
+linear_plot
+```
+
+
+```{r}
+#Fit a logistic regression:
+logistic_model <- glm(LOW ~ AGE + WT + RACE + SMOKE + HYP + UI + FTV + PTL,data = df, family = binomial(link=logit))
+
+summary(logistic_model)
+```
+
+
+
+```{r}
+# Generates prediction and graphically plots it
+df$predicts = predict(logistic_model,type="response")
+linear_plot + geom_point(data=df, aes(x=AGE, y = predicts),color="red")+
+geom_hline(yintercept = 0.5, linetype = "dashed", color = "red")
+
+```
+
+
+```{r}
+#Hypothesis Testing
+
+#Hosmer Lemeshow Test
+library(ResourceSelection)
+hoslem.test(logistic_model$y,fitted(logistic_model),g=2)
+
+# Wald test - Note that the summary only does the wald test for only single predictor
+summary(logistic_model)
+
+# Perform Likelihood Ratio Test (LRT)
+lrt_result <- anova(logistic_model, test = "LRT")
+print(lrt_result)
+
+# Perform Score test
+score_result <- anova(logistic_model, test = "Rao")
+print(score_result)
+```
+
